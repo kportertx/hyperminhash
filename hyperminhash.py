@@ -91,6 +91,7 @@ class HyperMinHash:
 
         self._bbit_mask = 2**self.subbucketsize -1
         self._bucketbit_shift = 64 - self.bucketbits
+        self._is_empty = True
         #self.buckets = [ (0,0) for _ in range(2**bucketbits)]
     def serialize(self):
         '''Returns a Bytes object that can be reconstructed into a HyperMinHash sketch'''
@@ -151,6 +152,7 @@ class HyperMinHash:
 
     def update(self, l):
         '''Inserts a list of items l into the sketch'''
+        self._is_empty = False
         hash_lists = ( self.triple_hash(item) for item in l)
         for i, val, aug in hash_lists:
             if self.hll[i] > val:
@@ -233,6 +235,10 @@ class HyperMinHash:
         assert(self.bucketbits == other.bucketbits)
         assert(self.bucketsize == other.bucketsize)
         assert(self.subbucketsize == other.subbucketsize)
+
+        if self._is_empty or other._is_empty:
+            return 1.0 if self._is_empty == other._is_empty else 0.0
+
         self_nonzeros = np.logical_or(self.hll != 0, self.bbit != 0)
         matches_with_zeros = np.logical_and(self.hll == other.hll, self.bbit == other.bbit)
         matches = np.logical_and(self_nonzeros, matches_with_zeros)
